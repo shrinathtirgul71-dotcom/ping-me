@@ -1,6 +1,33 @@
 import { useState } from "react";
 import { useSocket } from "./useSocket";
 
+const VAPID_PUBLIC_KEY = "BKe4EffBjs7QHEjkmHJD5wLPlLHpaRApYJejjyj8DmuJy7sYbLewl-OeJzncghZHrHlbtkRtcGvaJuLBZhCOulA";
+const SERVER_URL = "https://ping-me-opwf.onrender.com";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+}
+
+async function subscribeToPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+  const reg = await navigator.serviceWorker.register("/sw.js");
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") return;
+  const sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+  });
+  await fetch(`${SERVER_URL}/subscribe`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(sub),
+  });
+  console.log("✅ Push notifications enabled!");
+}
+
 let audioCtx = null;
 let activeSources = [];
 
@@ -47,7 +74,10 @@ export default function PhonePage() {
   const [unlocked, setUnlocked] = useState(false);
 
   const unlock = () => {
-    getAudioContext().resume().then(() => setUnlocked(true));
+    getAudioContext().resume().then(() => {
+      setUnlocked(true);
+      subscribeToPush();
+    });
   };
 
   useSocket((ping) => {

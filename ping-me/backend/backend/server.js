@@ -3,71 +3,102 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
+const webpush = require("web-push");
 
 const app = express();
 const server = http.createServer(app);
 
-// ─── Socket.io setup ───────────────────────────────────────────────────────
 const io = new Server(server, {
-  cors: {
-    origin: "*", // In production, replace * with your frontend URL
-    methods: ["GET", "POST"],
-  },
+  cors: { origin: "*", methods: ["GET", "POST"] },
 });
 
 app.use(cors());
 app.use(express.json());
 
-// ─── In-memory store of callers (you can move this to MongoDB later) ───────
+// VAPID setup
+webpush.setVapidDetails(
+  process.env.VAPID_EMAIL,
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
+
 const callers = [
   { id: "1", name: "Reception", emoji: "📞" },
 ];
-// ─── REST: get list of callers ─────────────────────────────────────────────
-app.get("/callers", (req, res) => {
-  res.json(callers);
+
+// Store push subscriptions
+let pushSubscriptions = [];
+
+// Get callers
+app.get("/callers", (req, res) => res.json(callers));
+
+// Get VAPID public key
+app.get("/vapid-public-key", (req, res) => {
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
 });
 
-// ─── REST: send a ping ─────────────────────────────────────────────────────
-// Body: { callerId: "1", message: "Bring tea" }
-app.post("/ping", (req, res) => {
-  const { callerId, message } = req.body;
-
-  // Find the caller
-  const caller = callers.find((c) => c.id === callerId);
-  if (!caller) {
-    return res.status(404).json({ error: "Caller not found" });
+// Save push subscription from phone
+app.post("/subscribe", (req, res) => {
+  const subscription = req.body;
+  const exists = pushSubscriptions.find(
+    (s) => s.endpoint === subscription.endpoint
+  );
+  if (!exists) {
+    pushSubscriptions.push(subscription);
+    console.log("📱 New push subscription saved!");
   }
+  res.json({ success: true });
+});
 
-  // Build ping payload
+// Send ping
+app.post("/ping", (req, res) => {
+  const { callerId, message, callerName } = req.body;
+
+  const caller = callers.find((c) => c.id === callerId);
+  if (!caller) return res.status(404).json({ error: "Caller not found" });
+
   const ping = {
-    caller,
+    caller: { ...caller, name: callerName || caller.name },
     message: message || "",
     time: new Date().toISOString(),
   };
 
-  // Broadcast to ALL connected phone clients
+  // Socket.io for open browser tabs
   io.emit("incoming-ping", ping);
 
-  console.log(`📣 Ping sent from ${caller.name}: "${message}"`);
+  // Push notification for background/locked screen
+  const payload = JSON.stringify({
+    title: `📞 ${ping.caller.name} is calling!`,
+    body: ping.message || "Someone is calling you!",
+    icon: "/favicon.svg",
+  });
+
+  pushSubscriptions.forEach((sub) => {
+    webpush.sendNotification(sub, payload).catch((err) => {
+      console.error("Push failed:", err.statusCode);
+      // Remove invalid subscriptions
+      if (err.statusCode === 410) {
+        pushSubscriptions = pushSubscriptions.filter(
+          (s) => s.endpoint !== sub.endpoint
+        );
+      }
+    });
+  });
+
+  console.log(`📣 Ping sent from ${ping.caller.name}`);
   res.json({ success: true, ping });
 });
 
-// ─── Socket.io connection log ──────────────────────────────────────────────
 io.on("connection", (socket) => {
-  console.log(`✅ Client connected: ${socket.id}`);
-
-  socket.on("disconnect", () => {
-    console.log(`❌ Client disconnected: ${socket.id}`);
-  });
+  console.log(`✅ Connected: ${socket.id}`);
+  socket.on("disconnect", () => console.log(`❌ Disconnected: ${socket.id}`));
 });
 
-// ─── Health check ──────────────────────────────────────────────────────────
-app.get("/", (req, res) => {
-  res.json({ status: "Ping Me server is running 🚀" });
-});
+app.get("/", (req, res) =>
+  res.json({ status: "Ping Me server is running 🚀" })
+);
 
-// ─── Start server ──────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-});
+server.listen(PORT, () =>
+  console.log(`🚀 Server running on http://localhost:${PORT}`)
+);

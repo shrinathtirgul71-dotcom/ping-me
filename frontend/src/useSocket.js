@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 
-const SERVER_URL = "http://localhost:4000";
+const SERVER_URL = "https://ping-me-opwf.onrender.com";
 
 let socket;
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-const SERVER_URL = "http://localhost:4000";
+const SERVER_URL = "https://ping-me-opwf.onrender.com";
 
 export default function CallerPage() {
   const [name, setName] = useState("");

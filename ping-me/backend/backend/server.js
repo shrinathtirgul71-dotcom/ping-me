@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const webpush = require("web-push");
+const mongoose = require("mongoose");
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +16,15 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("✅ MongoDB connected!"))
+  .catch((err) => console.error("❌ MongoDB error:", err));
+
+// Subscription schema
+const subSchema = new mongoose.Schema({ subscription: Object });
+const Sub = mongoose.model("Sub", subSchema);
+
 // VAPID setup
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL,
@@ -22,38 +32,30 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 
-const callers = [
-  { id: "1", name: "Reception", emoji: "📞" },
-];
+const callers = [{ id: "1", name: "Reception", emoji: "📞" }];
 
-// Store push subscriptions
-let pushSubscriptions = [];
-
-// Get callers
 app.get("/callers", (req, res) => res.json(callers));
 
-// Get VAPID public key
-app.get("/vapid-public-key", (req, res) => {
-  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
-});
+app.get("/vapid-public-key", (req, res) =>
+  res.json({ publicKey: process.env.VAPID_PUBLIC_KEY })
+);
 
-// Save push subscription from phone
-app.post("/subscribe", (req, res) => {
+// Save push subscription
+app.post("/subscribe", async (req, res) => {
   const subscription = req.body;
-  const exists = pushSubscriptions.find(
-    (s) => s.endpoint === subscription.endpoint
-  );
+  const exists = await Sub.findOne({
+    "subscription.endpoint": subscription.endpoint,
+  });
   if (!exists) {
-    pushSubscriptions.push(subscription);
-    console.log("📱 New push subscription saved!");
+    await Sub.create({ subscription });
+    console.log("📱 New subscription saved to MongoDB!");
   }
   res.json({ success: true });
 });
 
 // Send ping
-app.post("/ping", (req, res) => {
+app.post("/ping", async (req, res) => {
   const { callerId, message, callerName } = req.body;
-
   const caller = callers.find((c) => c.id === callerId);
   if (!caller) return res.status(404).json({ error: "Caller not found" });
 
@@ -63,29 +65,26 @@ app.post("/ping", (req, res) => {
     time: new Date().toISOString(),
   };
 
-  // Socket.io for open browser tabs
+  // Socket.io for open tabs
   io.emit("incoming-ping", ping);
 
-  // Push notification for background/locked screen
+  // Push notification for closed app
   const payload = JSON.stringify({
-    title: `📞 ${ping.caller.name} is calling!`,
-    body: ping.message || "Someone is calling you!",
+    title: `📞 ${ping.caller.name} is calling you!`,
+    body: "Tap to open Ping Me",
     icon: "/favicon.svg",
   });
 
-  pushSubscriptions.forEach((sub) => {
-    webpush.sendNotification(sub, payload).catch((err) => {
-      console.error("Push failed:", err.statusCode);
-      // Remove invalid subscriptions
+  const subs = await Sub.find();
+  subs.forEach(({ subscription }) => {
+    webpush.sendNotification(subscription, payload).catch(async (err) => {
       if (err.statusCode === 410) {
-        pushSubscriptions = pushSubscriptions.filter(
-          (s) => s.endpoint !== sub.endpoint
-        );
+        await Sub.deleteOne({ "subscription.endpoint": subscription.endpoint });
       }
     });
   });
 
-  console.log(`📣 Ping sent from ${ping.caller.name}`);
+  console.log(`📣 Ping from ${ping.caller.name}`);
   res.json({ success: true, ping });
 });
 

@@ -6,6 +6,23 @@ const cors = require("cors");
 const webpush = require("web-push");
 const mongoose = require("mongoose");
 
+// ─── Telegram notification ─────────────────────────────────────────────────
+async function sendTelegram(name) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  const text = `🔔 <b>${name}</b> is calling you!\n\n📍 Reception Area\n🕐 ${new Date().toLocaleTimeString("en-IN")}`;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML" }),
+    });
+    console.log("📨 Telegram sent!");
+  } catch (e) {
+    console.error("Telegram error:", e.message);
+  }
+}
+
 const app = express();
 const server = http.createServer(app);
 
@@ -16,16 +33,15 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-// Connect to MongoDB
+// ─── MongoDB ───────────────────────────────────────────────────────────────
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log("✅ MongoDB connected!"))
   .catch((err) => console.error("❌ MongoDB error:", err));
 
-// Subscription schema
 const subSchema = new mongoose.Schema({ subscription: Object });
 const Sub = mongoose.model("Sub", subSchema);
 
-// VAPID setup
+// ─── VAPID ─────────────────────────────────────────────────────────────────
 webpush.setVapidDetails(
   process.env.VAPID_EMAIL,
   process.env.VAPID_PUBLIC_KEY,
@@ -34,13 +50,17 @@ webpush.setVapidDetails(
 
 const callers = [{ id: "1", name: "Reception", emoji: "📞" }];
 
+// ─── Routes ────────────────────────────────────────────────────────────────
+app.get("/", (req, res) =>
+  res.json({ status: "Ping Me server is running 🚀" })
+);
+
 app.get("/callers", (req, res) => res.json(callers));
 
 app.get("/vapid-public-key", (req, res) =>
   res.json({ publicKey: process.env.VAPID_PUBLIC_KEY })
 );
 
-// Save push subscription
 app.post("/subscribe", async (req, res) => {
   const subscription = req.body;
   const exists = await Sub.findOne({
@@ -48,33 +68,31 @@ app.post("/subscribe", async (req, res) => {
   });
   if (!exists) {
     await Sub.create({ subscription });
-    console.log("📱 New subscription saved to MongoDB!");
+    console.log("📱 New subscription saved!");
   }
   res.json({ success: true });
 });
 
-// Send ping
 app.post("/ping", async (req, res) => {
-  const { callerId, message, callerName } = req.body;
+  const { callerId, callerName } = req.body;
   const caller = callers.find((c) => c.id === callerId);
   if (!caller) return res.status(404).json({ error: "Caller not found" });
 
   const ping = {
     caller: { ...caller, name: callerName || caller.name },
-    message: message || "",
+    message: `${callerName || caller.name} is calling you!`,
     time: new Date().toISOString(),
   };
 
-  // Socket.io for open tabs
+  // 1. Socket.io — for open browser
   io.emit("incoming-ping", ping);
 
-  // Push notification for closed app
+  // 2. Web Push — for PWA background
   const payload = JSON.stringify({
-    title: `📞 ${ping.caller.name} is calling you!`,
+    title: `📞 ${ping.caller.name} is calling!`,
     body: "Tap to open Ping Me",
     icon: "/favicon.svg",
   });
-
   const subs = await Sub.find();
   subs.forEach(({ subscription }) => {
     webpush.sendNotification(subscription, payload).catch(async (err) => {
@@ -84,19 +102,22 @@ app.post("/ping", async (req, res) => {
     });
   });
 
+  // 3. Telegram — works always, screen off, app closed
+  await sendTelegram(ping.caller.name);
+
   console.log(`📣 Ping from ${ping.caller.name}`);
   res.json({ success: true, ping });
 });
 
+// ─── Socket.io ─────────────────────────────────────────────────────────────
 io.on("connection", (socket) => {
   console.log(`✅ Connected: ${socket.id}`);
-  socket.on("disconnect", () => console.log(`❌ Disconnected: ${socket.id}`));
+  socket.on("disconnect", () =>
+    console.log(`❌ Disconnected: ${socket.id}`)
+  );
 });
 
-app.get("/", (req, res) =>
-  res.json({ status: "Ping Me server is running 🚀" })
-);
-
+// ─── Start ─────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () =>
   console.log(`🚀 Server running on http://localhost:${PORT}`)

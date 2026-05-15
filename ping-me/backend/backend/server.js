@@ -6,6 +6,25 @@ const cors = require("cors");
 const webpush = require("web-push");
 const mongoose = require("mongoose");
 
+// ─── Ntfy notification ─────────────────────────────────────────────────────
+async function sendNtfy(name) {
+  try {
+    await fetch("https://ntfy.sh/pingme-officeboy-123", {
+      method: "POST",
+      headers: {
+        "Title": "Ping Me 🔔",
+        "Priority": "urgent",
+        "Tags": "bell",
+        "Content-Type": "text/plain",
+      },
+      body: `${name} is calling you! Come to Reception.`,
+    });
+    console.log("📲 Ntfy sent!");
+  } catch (e) {
+    console.error("Ntfy error:", e.message);
+  }
+}
+
 // ─── Telegram notification ─────────────────────────────────────────────────
 async function sendTelegram(name) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -102,7 +121,10 @@ app.post("/ping", async (req, res) => {
     });
   });
 
-  // 3. Telegram — works always, screen off, app closed
+  // 3. Ntfy — works always, screen off, app closed
+  await sendNtfy(ping.caller.name);
+
+  // 4. Telegram — backup
   await sendTelegram(ping.caller.name);
 
   console.log(`📣 Ping from ${ping.caller.name}`);

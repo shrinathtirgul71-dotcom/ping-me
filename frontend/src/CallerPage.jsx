@@ -21,6 +21,7 @@ export default function CallerPage() {
     try {
       await axios.post(`${SERVER_URL}/ping`, {
         callerId: "1",
+        callerName: name.trim(),
         message: `${name.trim()} is calling you!`,
       });
       setSent(true);

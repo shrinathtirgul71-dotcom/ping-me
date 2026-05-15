@@ -300,7 +300,7 @@ export default function PhonePage() {
               color: "#1E2D3D",
               margin: "0 0 6px",
               letterSpacing: "-0.02em",
-            }}>{active.message?.replace(" is calling you!", "") || active.caller?.name}</h2>
+            }}>{active.caller?.name}</h2>
 
             <p style={{
               color: "#B0A09A",
@@ -404,7 +404,7 @@ export default function PhonePage() {
                   fontWeight: "700",
                   fontSize: "0.9rem",
                   color: "#1E2D3D",
-                }}>{ping.message?.replace(" is calling you!", "") || ping.caller?.name}</div>
+                }}>{ping.caller?.name}</div>
                 <div style={{
                   fontFamily: "'JetBrains Mono', monospace",
                   color: "#B0A09A",

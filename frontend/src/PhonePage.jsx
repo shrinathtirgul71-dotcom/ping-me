@@ -128,6 +128,7 @@ export default function PhonePage() {
   const [pings, setPings] = useState([]);
   const [active, setActive] = useState(null);
   const [unlocked, setUnlocked] = useState(false);
+  const [soundOn, setSoundOn] = useState(true);
 
   const unlock = () => {
     getAudioContext().resume().then(() => {
@@ -137,7 +138,7 @@ export default function PhonePage() {
   };
 
   useSocket((ping) => {
-    playAlertSound();
+    if (soundOn) playAlertSound();
     if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 500]);
     setActive(ping);
     setPings((prev) => [ping, ...prev]);
@@ -356,6 +357,49 @@ export default function PhonePage() {
           <IcoCheck size={12} stroke="#1A5C43" />
           Sound enabled · waiting
         </span>
+      )}
+
+      {/* Sound toggle button */}
+      {unlocked && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setSoundOn(prev => !prev); }}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 20px",
+            borderRadius: "50px",
+            border: "1.5px solid",
+            borderColor: soundOn ? "#3B9EDD" : "#E8EDF2",
+            background: soundOn ? "#D6EEFA" : "#E8EDF2",
+            color: soundOn ? "#1A6A9E" : "#6B7280",
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: "600",
+            fontSize: "13px",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+          }}
+        >
+          {soundOn ? (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </svg>
+              Sound ON
+            </>
+          ) : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
+              </svg>
+              Sound OFF
+            </>
+          )}
+        </button>
       )}
 
       {/* Ping history */}

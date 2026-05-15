@@ -25,7 +25,6 @@ async function subscribeToPush() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(sub),
   });
-  console.log("✅ Push notifications enabled!");
 }
 
 let audioCtx = null;
@@ -68,6 +67,63 @@ function playAlertSound() {
   }
 }
 
+// ── Icons ──────────────────────────────────────────────
+function IcoBell({ size = 24, stroke = "#3B9EDD" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+    </svg>
+  );
+}
+
+function IcoCheck({ size = 16, stroke = "#fff" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 6 9 17l-5-5"/>
+    </svg>
+  );
+}
+
+function IcoAlert({ size = 14, stroke = "#B85A3A" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+      <path d="M12 9v4"/><path d="M12 17h.01"/>
+    </svg>
+  );
+}
+
+function IcoPointer({ size = 14, stroke = "#1E2D3D" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M22 14a8 8 0 0 1-8 8"/>
+      <path d="M18 11v-1a2 2 0 0 0-4 0v0"/>
+      <path d="M14 10V9a2 2 0 0 0-4 0v1"/>
+      <path d="M10 9.5V4a2 2 0 0 0-4 0v10"/>
+      <path d="M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>
+    </svg>
+  );
+}
+
+function IcoMegaphone({ size = 18, stroke = "#E07B5A" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m3 11 18-5v12L3 14v-3z"/>
+      <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+    </svg>
+  );
+}
+
+function IcoInbox({ size = 40, stroke = "#C0B0A8" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+      <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/>
+    </svg>
+  );
+}
+
 export default function PhonePage() {
   const [pings, setPings] = useState([]);
   const [active, setActive] = useState(null);
@@ -95,188 +151,284 @@ export default function PhonePage() {
 
   return (
     <div onClick={unlock} style={{
-      minHeight:"100vh",
-      background:"#F5F0E8",
-      fontFamily:"'DM Sans', sans-serif",
-      display:"flex",
-      flexDirection:"column",
-      alignItems:"center",
-      padding:"32px 16px",
-      gap:"16px",
+      minHeight: "100vh",
+      background: "#F0F7FF",
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      padding: "32px 16px 48px",
+      gap: "14px",
     }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
         * { box-sizing: border-box; }
-        @keyframes ring {
-          from { transform: rotate(-25deg); }
-          to   { transform: rotate(25deg); }
+
+        @keyframes ringBell {
+          0%   { transform: rotate(-15deg); }
+          100% { transform: rotate(15deg); }
         }
         @keyframes popIn {
-          from { transform: scale(0.8); opacity:0; }
-          to   { transform: scale(1); opacity:1; }
+          from { transform: scale(0.88); opacity: 0; }
+          to   { transform: scale(1); opacity: 1; }
         }
         @keyframes fadeUp {
-          from { opacity:0; transform:translateY(16px); }
-          to   { opacity:1; transform:translateY(0); }
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes borderPulse {
-          0%,100% { border-color: #E8483A; }
-          50%      { border-color: #ffaa00; }
+        @keyframes glowPulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(59,158,221,0.25); }
+          50%       { box-shadow: 0 0 0 10px rgba(59,158,221,0); }
+        }
+
+        .alert-overlay {
+          position: fixed; inset: 0;
+          background: rgba(20, 35, 55, 0.88);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 100; padding: 20px;
+          backdrop-filter: blur(4px);
+        }
+        .alert-card {
+          background: #fff;
+          border-radius: 28px;
+          padding: 36px 28px;
+          text-align: center;
+          width: 100%; max-width: 360px;
+          animation: popIn 0.3s ease;
+          border: 1.5px solid #E0EEF8;
+          box-shadow: 0 24px 64px rgba(30,45,61,0.25);
+        }
+        .ring-icon {
+          display: inline-flex;
+          animation: ringBell 0.35s ease infinite alternate;
+        }
+        .dismiss-btn {
+          width: 100%;
+          padding: 16px;
+          background: #E07B5A;
+          color: #fff;
+          border: none;
+          border-radius: 14px;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-size: 1rem;
+          font-weight: 700;
+          cursor: pointer;
+          box-shadow: 0 4px 16px rgba(224,123,90,0.3);
+          transition: transform 0.15s, box-shadow 0.15s;
+          display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        }
+        .dismiss-btn:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(224,123,90,0.38);
+        }
+        .dismiss-btn:active {
+          transform: translateY(0);
+          box-shadow: 0 2px 8px rgba(224,123,90,0.2);
+        }
+
+        .status-pill {
+          display: inline-flex; align-items: center; gap: 7px;
+          border-radius: 50px; padding: 9px 18px;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-weight: 500; font-size: 13px;
+          cursor: pointer;
+        }
+        .pill-waiting { background: #E8EDF2; color: #1E2D3D; }
+        .pill-enabled { background: #D4F0E5; color: #1A5C43; }
+        .pill-ringing { background: #FFDDD5; color: #B85A3A; animation: glowPulse 1.2s ease infinite; }
+
+        .ping-card {
+          display: flex; gap: 12px; align-items: center;
+          background: #fff;
+          border-radius: 16px; padding: 14px 16px;
+          border: 1.5px solid #E0EEF8;
+          box-shadow: 0 2px 12px rgba(59,158,221,0.06);
+          animation: fadeUp 0.3s ease;
+          width: 100%;
+        }
+        .ping-ico {
+          width: 38px; height: 38px;
+          border-radius: 12px;
+          display: inline-flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .ping-badge {
+          background: #FFE0D5; color: #B85A3A;
+          border-radius: 50px; padding: 4px 10px;
+          font-size: 9px; font-weight: 700;
+          font-family: 'Plus Jakarta Sans', sans-serif;
+          letter-spacing: 0.08em; text-transform: uppercase;
+          white-space: nowrap;
+        }
+        .empty-state {
+          text-align: center; padding: 44px 24px;
+          border: 1.5px dashed #C8DFF0;
+          border-radius: 20px; width: 100%;
         }
       `}</style>
 
-      {/* Alert popup */}
+      {/* Incoming call alert */}
       {active && (
-        <div onClick={dismiss} style={{
-          position:"fixed", inset:0,
-          background:"rgba(20,10,5,0.93)",
-          display:"flex", alignItems:"center", justifyContent:"center",
-          zIndex:100, padding:"20px",
-        }}>
-          <div onClick={(e) => e.stopPropagation()} style={{
-            background:"#1a1a1a",
-            border:"3px solid #E8483A",
-            borderRadius:"28px",
-            padding:"40px 28px",
-            textAlign:"center",
-            width:"100%",
-            maxWidth:"360px",
-            animation:"popIn 0.3s ease, borderPulse 1s ease infinite",
-          }}>
-            <div style={{
-              fontSize:"5rem",
-              display:"inline-block",
-              animation:"ring 0.35s ease infinite alternate",
-              lineHeight:1,
-            }}>🔔</div>
+        <div className="alert-overlay" onClick={dismiss}>
+          <div className="alert-card" onClick={(e) => e.stopPropagation()}>
+
+            <div className="ring-icon" style={{ marginBottom: "16px" }}>
+              <div style={{
+                width: "64px", height: "64px",
+                background: "#D6EEFA",
+                borderRadius: "20px",
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <IcoBell size={30} stroke="#3B9EDD" />
+              </div>
+            </div>
 
             <p style={{
-              fontFamily:"'Syne', sans-serif",
-              fontSize:"0.85rem",
-              fontWeight:"700",
-              color:"#E8483A",
-              letterSpacing:"3px",
-              textTransform:"uppercase",
-              margin:"16px 0 4px",
+              fontFamily: "'JetBrains Mono', monospace",
+              fontSize: "0.7rem",
+              fontWeight: "500",
+              color: "#E07B5A",
+              letterSpacing: "0.15em",
+              textTransform: "uppercase",
+              margin: "0 0 6px",
             }}>Incoming Call</p>
 
             <h2 style={{
-              fontFamily:"'Syne', sans-serif",
-              fontSize:"2.2rem",
-              fontWeight:"800",
-              color:"#F5F0E8",
-              margin:"0 0 8px",
-              letterSpacing:"-1px",
-            }}>{active.caller.name}</h2>
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontSize: "2rem",
+              fontWeight: "800",
+              color: "#1E2D3D",
+              margin: "0 0 6px",
+              letterSpacing: "-0.02em",
+            }}>{active.caller?.name || active.message}</h2>
 
-            <div style={{fontSize:"3rem", margin:"8px 0"}}>{active.caller.emoji}</div>
-
-            <p style={{color:"#666", fontSize:"0.85rem", margin:"8px 0 24px"}}>
+            <p style={{
+              color: "#B0A09A",
+              fontSize: "0.8rem",
+              margin: "0 0 24px",
+              fontFamily: "'JetBrains Mono', monospace",
+            }}>
               {new Date(active.time).toLocaleTimeString()} · tap anywhere to dismiss
             </p>
 
-            <button onClick={dismiss} style={{
-              width:"100%",
-              padding:"18px",
-              background:"#E8823A",
-              color:"#1a1a1a",
-              border:"2.5px solid #1a1a1a",
-              borderRadius:"16px",
-              fontFamily:"'Syne', sans-serif",
-              fontSize:"1.1rem",
-              fontWeight:"800",
-              cursor:"pointer",
-              letterSpacing:"0.5px",
-              boxShadow:"4px 4px 0 #F5F0E8",
-            }}>✅ ON MY WAY!</button>
+            <button className="dismiss-btn" onClick={dismiss}>
+              <IcoCheck size={18} stroke="#fff" />
+              On My Way!
+            </button>
           </div>
         </div>
       )}
 
       {/* Header */}
       <div style={{
-        display:"inline-flex", alignItems:"center", justifyContent:"center",
-        width:"64px", height:"64px",
-        background:"#E8823A",
-        borderRadius:"18px",
-        fontSize:"1.8rem",
-        border:"2.5px solid #1a1a1a",
-        boxShadow:"4px 4px 0 #1a1a1a",
-        marginTop:"8px",
-      }}>🔔</div>
+        width: "60px", height: "60px",
+        background: "#D6EEFA",
+        borderRadius: "18px",
+        display: "inline-flex", alignItems: "center", justifyContent: "center",
+        marginTop: "8px",
+      }}>
+        <IcoBell size={28} stroke="#3B9EDD" />
+      </div>
 
       <h1 style={{
-        fontFamily:"'Syne', sans-serif",
-        fontSize:"2rem",
-        fontWeight:"800",
-        color:"#1a1a1a",
-        letterSpacing:"-1px",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontSize: "1.9rem",
+        fontWeight: "800",
+        color: "#1E2D3D",
+        letterSpacing: "-0.02em",
+        lineHeight: 1,
+        margin: 0,
       }}>Ping Me</h1>
 
-      {/* Sound status */}
+      {/* Status pill */}
       {!unlocked ? (
-        <div style={{
-          background:"#1a1a1a", color:"#F5F0E8",
-          borderRadius:"50px", padding:"12px 24px",
-          fontSize:"0.9rem", fontWeight:"500",
-          border:"2px solid #1a1a1a",
-          cursor:"pointer",
-        }}>👆 Tap to enable sound</div>
+        <span className="status-pill pill-waiting">
+          <IcoPointer size={14} stroke="#1E2D3D" />
+          Tap to enable sound
+        </span>
+      ) : active ? (
+        <span className="status-pill pill-ringing">
+          <IcoAlert size={14} stroke="#B85A3A" />
+          Phone ringing now
+        </span>
       ) : (
-        <div style={{
-          background:"#2D6A4F", color:"#fff",
-          borderRadius:"50px", padding:"12px 24px",
-          fontSize:"0.9rem", fontWeight:"500",
-          border:"2px solid #1B4332",
-        }}>✅ Sound enabled · waiting for calls</div>
+        <span className="status-pill pill-enabled">
+          <IcoCheck size={12} stroke="#1A5C43" />
+          Sound enabled · waiting
+        </span>
       )}
 
       {/* Ping history */}
-      <div style={{width:"100%", maxWidth:"420px", marginTop:"8px", display:"flex", flexDirection:"column", gap:"12px"}}>
+      <div style={{
+        width: "100%",
+        maxWidth: "420px",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        marginTop: "4px",
+      }}>
+        <div style={{
+          fontFamily: "'JetBrains Mono', monospace",
+          fontSize: "9px",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: "#B0A09A",
+        }}>Ping history</div>
+
         {pings.length === 0 ? (
-          <div style={{
-            textAlign:"center", padding:"48px 24px",
-            color:"#bbb", fontSize:"0.95rem",
-            border:"2px dashed #ddd", borderRadius:"20px",
-            marginTop:"16px",
-          }}>
-            <div style={{fontSize:"2.5rem", marginBottom:"12px"}}>📭</div>
-            No pings yet. Keep this page open.
+          <div className="empty-state">
+            <IcoInbox size={40} stroke="#C8DFF0" />
+            <p style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: "600",
+              fontSize: "0.9rem",
+              color: "#9BB5CC",
+              marginTop: "12px",
+            }}>No pings yet</p>
+            <p style={{
+              fontSize: "0.8rem",
+              color: "#B8CCDc",
+              marginTop: "4px",
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}>Keep this page open.</p>
           </div>
         ) : (
           pings.map((ping, i) => (
-            <div key={i} style={{
-              display:"flex", gap:"14px", alignItems:"center",
-              background:"#fff",
-              borderRadius:"16px", padding:"16px 18px",
-              border:"2px solid #1a1a1a",
-              boxShadow:"3px 3px 0 #1a1a1a",
-              animation:"fadeUp 0.3s ease",
-            }}>
-              <span style={{fontSize:"2rem"}}>{ping.caller.emoji}</span>
-              <div style={{flex:1}}>
+            <div key={i} className="ping-card">
+              <div className="ping-ico" style={{ background: i % 2 === 0 ? "#FFE0D5" : "#D6EEFA" }}>
+                <IcoMegaphone size={18} stroke={i % 2 === 0 ? "#E07B5A" : "#3B9EDD"} />
+              </div>
+              <div style={{ flex: 1 }}>
                 <div style={{
-                  fontFamily:"'Syne', sans-serif",
-                  fontWeight:"700", fontSize:"1rem",
-                  color:"#1a1a1a",
-                }}>{ping.caller.name}</div>
-                <div style={{color:"#999", fontSize:"0.8rem", marginTop:"2px"}}>
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontWeight: "700",
+                  fontSize: "0.9rem",
+                  color: "#1E2D3D",
+                }}>{ping.caller?.name || ping.message}</div>
+                <div style={{
+                  fontFamily: "'JetBrains Mono', monospace",
+                  color: "#B0A09A",
+                  fontSize: "0.72rem",
+                  marginTop: "3px",
+                }}>
                   {new Date(ping.time).toLocaleTimeString()}
                 </div>
               </div>
-              <div style={{
-                background:"#E8823A", color:"#1a1a1a",
-                borderRadius:"50px", padding:"4px 12px",
-                fontSize:"0.75rem", fontWeight:"700",
-                fontFamily:"'Syne', sans-serif",
-                border:"1.5px solid #1a1a1a",
-              }}>PING</div>
+              <span className="ping-badge">PING</span>
             </div>
           ))
         )}
       </div>
 
-      <p style={{color:"#bbb", fontSize:"0.75rem", marginTop:"auto", paddingTop:"24px"}}>
+      <p style={{
+        fontFamily: "'JetBrains Mono', monospace",
+        fontSize: "0.7rem",
+        color: "#C0D4E8",
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+        marginTop: "auto",
+        paddingTop: "24px",
+      }}>
         Ping Me · Office Pager
       </p>
     </div>

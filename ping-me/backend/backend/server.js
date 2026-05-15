@@ -12,7 +12,7 @@ async function sendNtfy(name) {
     await fetch("https://ntfy.sh/pingme-officeboy-123", {
       method: "POST",
       headers: {
-        "Title": "Ping Me 🔔",
+        "Title": "Ping Me - Incoming Call",
         "Priority": "urgent",
         "Tags": "bell",
         "Content-Type": "text/plain",
